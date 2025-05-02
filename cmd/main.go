@@ -2,7 +2,9 @@ package main
 
 import (
 	"envzilla"
+	"fmt"
 	"log"
+	"os"
 )
 
 func main() {
@@ -10,4 +12,5 @@ func main() {
 	if err != nil {
 		log.Fatal("WTF : ", err)
 	}
+	fmt.Println(os.Getenv("kairat"))
 }

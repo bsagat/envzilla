@@ -1,7 +1,7 @@
 package envzilla
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -50,33 +50,29 @@ func load(filePath string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return BytesParser(file)
+	defer file.Close()
+
+	bytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return BytesParser(bytes)
 }
 
-func BytesParser(file *os.File) (map[string]string, error) {
+func BytesParser(raw []byte) (map[string]string, error) {
 	var key, value, empty []byte
 	var isKeyAdded, isCommented bool
 
-	reader := bufio.NewReader(file)
 	env := make(map[string]string, 5)
-	for {
-		b := make([]byte, 1)
-		_, err := reader.Read(b)
-		if err != nil {
-			if err == io.EOF {
-				if len(key) != 0 && isKeyAdded {
-					env[string(key)] = string(value)
-				}
-				return env, nil
-			}
-			return nil, err
-		}
-
-		switch b[0] {
+	for i := 0; i < len(raw); i++ {
+		switch raw[i] {
 		case CRLF:
 		case newLine:
+			value = bytes.TrimSpace(value)
+
 			// Проверка на двойные скобки
-			if len(value) > 2 {
+			if len(value) >= 2 {
 				if value[0] == doublequotes && value[len(value)-1] == doublequotes {
 					if len(value) == 2 {
 						value = empty
@@ -91,7 +87,9 @@ func BytesParser(file *os.File) (map[string]string, error) {
 			key, value = empty, empty
 			isCommented, isKeyAdded = false, false
 		case equal:
-			isKeyAdded = true
+			if !isCommented {
+				isKeyAdded = true
+			}
 		case hashTag:
 			isCommented = true
 		default:
@@ -99,10 +97,14 @@ func BytesParser(file *os.File) (map[string]string, error) {
 				break
 			}
 			if isKeyAdded {
-				value = append(value, b[0])
+				value = append(value, raw[i])
 			} else {
-				key = append(key, b[0])
+				key = append(key, raw[i])
 			}
 		}
 	}
+	if len(key) != 0 && isKeyAdded {
+		env[string(key)] = string(value)
+	}
+	return env, nil
 }
