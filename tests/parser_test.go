@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"testing"
 
-	"envzilla"
+	"github.com/bsagat/envzilla"
 )
 
 func TestLoader(t *testing.T) {

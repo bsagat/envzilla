@@ -3,7 +3,7 @@ package autoload
 import (
 	"log/slog"
 
-	"envzilla"
+	"github.com/bsagat/envzilla"
 )
 
 func init() {
