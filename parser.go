@@ -2,7 +2,6 @@ package envzilla
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 )
@@ -25,8 +24,6 @@ func Loader(filepaths ...string) error {
 		if err != nil {
 			return err
 		}
-
-		fmt.Println(m)
 
 		if err := setVariables(m); err != nil {
 			return err
@@ -70,6 +67,7 @@ func BytesParser(raw []byte) (map[string]string, error) {
 		case CRLF:
 		case newLine:
 			value = bytes.TrimSpace(value)
+			key = bytes.TrimSpace(key)
 
 			// Проверка на двойные скобки
 			if len(value) >= 2 {
@@ -104,6 +102,19 @@ func BytesParser(raw []byte) (map[string]string, error) {
 		}
 	}
 	if len(key) != 0 && isKeyAdded {
+		value = bytes.TrimSpace(value)
+		key = bytes.TrimSpace(key)
+
+		if len(value) >= 2 {
+			if value[0] == doublequotes && value[len(value)-1] == doublequotes {
+				if len(value) == 2 {
+					value = empty
+				} else {
+					value = value[1 : len(value)-1]
+				}
+			}
+		}
+
 		env[string(key)] = string(value)
 	}
 	return env, nil
