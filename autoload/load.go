@@ -1,8 +1,9 @@
 package autoload
 
 import (
-	"envzilla"
 	"log/slog"
+
+	"envzilla"
 )
 
 func init() {

@@ -1,10 +1,11 @@
 package envzilla
 
 import (
-	"envzilla"
 	"fmt"
 	"log/slog"
 	"testing"
+
+	"envzilla"
 )
 
 func TestLoader(t *testing.T) {
@@ -34,7 +35,6 @@ func TestDefaultParsing(t *testing.T) {
 	ParseAndCompare(t, []byte(`INVALID LINE`), "INVALID LINE", "", "Testing Invalid line")
 	ParseAndCompare(t, []byte(`foo=`), "foo", "", "Testing empty value")
 	ParseAndCompare(t, []byte(`=value`), "", "", "Testing empty key")
-
 }
 
 func TestCommentParsing(t *testing.T) {
