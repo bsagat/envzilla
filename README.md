@@ -1,26 +1,25 @@
 # 🐲 EnvZilla
 
-**EnvZilla** — это минималистичный Go-пакет для загрузки переменных окружения из конфигурационных файлов.Подходит для разработки, тестирования и деплоя приложений.
+**EnvZilla** is a minimalist Go package for loading environment variables from config files. Perfect for development, testing, and deployment environments.
 
 ---
 
-## 🔧 Возможности
+## 🔧 Features
 
-- 📄 Чтение конфигурационных файлов
-- 🧼 Игнорирование комментариев (`#`) и пустых строк
-- 🌱 Установка переменных в глобальное окружение `os.Environ`
+- 📄 Reads configuration files
+- 🧼 Ignores comments (`#`) and empty lines
+- 🌱 Sets variables into the global `os.Environ`
 
 ---
 
-## 📦 Установка
+## 📦 Installation
 
-Для того чтобы установить пакет используй команду:
+Install the package:
 
 ```bash
 go get github.com/bsagat/envzilla
-```
 
-Для автоматической загрузки переменных:
+For automatic variable loading::
 
 ```bash
 go get github.com/bsagat/envzilla/autoload
