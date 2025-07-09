@@ -59,10 +59,7 @@ func TestQuotesParser(t *testing.T) {
 func ParseAndCompare(t *testing.T, input []byte, inputKey string, expected string, description string) {
 	fmt.Println(description + "...")
 
-	m, err := envzilla.BytesParser(input)
-	if err != nil {
-		t.Errorf("BytesParser returned error: %s", err.Error())
-	}
+	m := envzilla.BytesParser(input)
 	if m[inputKey] != expected {
 		t.Errorf("Expected %s=%s, got: %s", inputKey, expected, m[inputKey])
 	}

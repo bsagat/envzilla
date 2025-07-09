@@ -2,8 +2,12 @@ package envzilla
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
 	"os"
+	"reflect"
+	"strconv"
 )
 
 var (
@@ -54,10 +58,10 @@ func load(filePath string) (map[string]string, error) {
 		return nil, err
 	}
 
-	return BytesParser(bytes)
+	return BytesParser(bytes), nil
 }
 
-func BytesParser(raw []byte) (map[string]string, error) {
+func BytesParser(raw []byte) map[string]string {
 	var key, value, empty []byte
 	var isKeyAdded, isCommented bool
 
@@ -117,5 +121,90 @@ func BytesParser(raw []byte) (map[string]string, error) {
 
 		env[string(key)] = string(value)
 	}
-	return env, nil
+	return env
+}
+
+var (
+	envTag     = "env"
+	defaultTag = "default"
+)
+
+// Sets struct fields from environment variables using reflection.
+func parse(cfg interface{}) error {
+	ptrVal := reflect.ValueOf(cfg)
+	if ptrVal.Kind() != reflect.Ptr {
+		return ErrIsNotStructPointer
+	}
+
+	structVal := ptrVal.Elem()
+	if structVal.Kind() != reflect.Struct {
+		return ErrIsNotStructPointer
+	}
+
+	return processStruct(structVal)
+}
+
+// It reads the `env` tag for the environment variable key and the `default` tag for fallback values.
+func processStruct(structVal reflect.Value) error {
+	structType := structVal.Type()
+
+	for i := 0; i < structVal.NumField(); i++ {
+		field := structVal.Field(i)
+		fieldType := structType.Field(i)
+
+		envKey, hasKey := fieldType.Tag.Lookup(envTag)
+		defVal, hasDefault := fieldType.Tag.Lookup(defaultTag)
+
+		var valueToSet string
+
+		if hasKey && envKey != "" {
+			valueToSet = os.Getenv(envKey)
+		} else {
+			return fmt.Errorf("%w for field %s", ErrMissingEnvTag, fieldType.Name)
+		}
+
+		if hasDefault && defVal != "" && valueToSet == "" {
+			valueToSet = defVal
+		}
+
+		if err := setField(field, valueToSet); err != nil {
+			return fmt.Errorf("cannot set field %s: %w", fieldType.Name, err)
+		}
+	}
+
+	return nil
+}
+
+// Supports fields of type string, int, float, and bool.
+func setField(field reflect.Value, value string) error {
+	if !field.CanSet() {
+		return errors.New("field cannot be set")
+	}
+
+	switch field.Kind() {
+	case reflect.String:
+		field.SetString(value)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		i, err := strconv.ParseInt(value, 10, 64)
+		if err != nil {
+			return fmt.Errorf("cannot convert %s to int: %w", value, err)
+		}
+		field.SetInt(i)
+	case reflect.Float32, reflect.Float64:
+		f, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return fmt.Errorf("cannot convert %s to float: %w", value, err)
+		}
+		field.SetFloat(f)
+	case reflect.Bool:
+		b, err := strconv.ParseBool(value)
+		if err != nil {
+			return fmt.Errorf("cannot convert %s to bool: %w", value, err)
+		}
+		field.SetBool(b)
+	default:
+		return fmt.Errorf("unsupported kind: %s", field.Kind())
+	}
+
+	return nil
 }
