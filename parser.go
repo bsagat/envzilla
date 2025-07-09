@@ -130,7 +130,7 @@ var (
 )
 
 // Sets struct fields from environment variables using reflection.
-func parse(cfg interface{}) error {
+func Parse(cfg interface{}) error {
 	ptrVal := reflect.ValueOf(cfg)
 	if ptrVal.Kind() != reflect.Ptr {
 		return ErrIsNotStructPointer
@@ -158,7 +158,11 @@ func processStruct(structVal reflect.Value) error {
 		var valueToSet string
 
 		if hasKey && envKey != "" {
-			valueToSet = os.Getenv(envKey)
+			envVal := os.Getenv(envKey)
+			if len(envVal) == 0 {
+				return fmt.Errorf("%s field tag provided, but not found", envKey)
+			}
+			valueToSet = envVal
 		} else {
 			return fmt.Errorf("%w for field %s", ErrMissingEnvTag, fieldType.Name)
 		}
