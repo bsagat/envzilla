@@ -3,6 +3,7 @@ package envzilla
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"testing"
 
 	"github.com/bsagat/envzilla"
@@ -54,6 +55,116 @@ func TestQuotesParser(t *testing.T) {
 	ParseAndCompare(t, []byte(`gg="bro`), "gg", "\"bro", "Testing with one double quotes")
 	ParseAndCompare(t, []byte(`empty=""`), "empty", "", "Testing with empty two double quotes")
 	ParseAndCompare(t, []byte(`empty="`), "empty", "\"", "Testing with empty one double quotes")
+}
+
+type parseTestConfig struct {
+	StringField string  `env:"TEST_STRING" default:"default_value"`
+	IntField    int     `env:"TEST_INT" default:"42"`
+	FloatField  float64 `env:"TEST_FLOAT" default:"3.14"`
+	BoolField   bool    `env:"TEST_BOOL" default:"true"`
+}
+
+func TestParse_WithEnvValues(t *testing.T) {
+	// Arrange
+	os.Setenv("TEST_STRING", "from_env")
+	os.Setenv("TEST_INT", "100")
+	os.Setenv("TEST_FLOAT", "2.718")
+	os.Setenv("TEST_BOOL", "false")
+	defer func() {
+		os.Unsetenv("TEST_STRING")
+		os.Unsetenv("TEST_INT")
+		os.Unsetenv("TEST_FLOAT")
+		os.Unsetenv("TEST_BOOL")
+	}()
+
+	cfg := parseTestConfig{}
+
+	// Act
+	err := envzilla.Parse(&cfg)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	// Assert
+	if cfg.StringField != "from_env" {
+		t.Errorf("expected StringField=from_env, got %s", cfg.StringField)
+	}
+	if cfg.IntField != 100 {
+		t.Errorf("expected IntField=100, got %d", cfg.IntField)
+	}
+	if cfg.FloatField != 2.718 {
+		t.Errorf("expected FloatField=2.718, got %f", cfg.FloatField)
+	}
+	if cfg.BoolField != false {
+		t.Errorf("expected BoolField=false, got %v", cfg.BoolField)
+	}
+}
+
+func TestParse_WithDefaults(t *testing.T) {
+	// Arrange
+	cfg := parseTestConfig{}
+
+	// Act
+	err := envzilla.Parse(&cfg)
+	if err != nil {
+		t.Fatalf("Parse returned error: %v", err)
+	}
+
+	// Assert
+	if cfg.StringField != "default_value" {
+		t.Errorf("expected StringField=default_value, got %s", cfg.StringField)
+	}
+	if cfg.IntField != 42 {
+		t.Errorf("expected IntField=42, got %d", cfg.IntField)
+	}
+	if cfg.FloatField != 3.14 {
+		t.Errorf("expected FloatField=3.14, got %f", cfg.FloatField)
+	}
+	if cfg.BoolField != true {
+		t.Errorf("expected BoolField=true, got %v", cfg.BoolField)
+	}
+}
+
+func TestParse_ErrorOnNonPointer(t *testing.T) {
+	cfg := parseTestConfig{}
+	err := envzilla.Parse(cfg) // Passing struct instead of *struct
+	if err == nil {
+		t.Errorf("expected error when passing non-pointer to Parse, got nil")
+	}
+}
+
+func TestParse_ErrorOnNonStructPointer(t *testing.T) {
+	var i int
+	err := envzilla.Parse(&i) // Passing pointer to non-struct
+	if err == nil {
+		t.Errorf("expected error when passing non-struct pointer to Parse, got nil")
+	}
+}
+
+func TestParse_MissingEnvTag(t *testing.T) {
+	type badConfig struct {
+		Field string `json:"no_env_tag"`
+	}
+	cfg := badConfig{}
+	err := envzilla.Parse(&cfg)
+	if err == nil {
+		t.Errorf("expected error due to missing env tag, got nil")
+	}
+}
+
+func TestParse_ErrorOnInvalidEnvValue(t *testing.T) {
+	type badConfig struct {
+		IntField int `env:"TEST_INVALID_INT"`
+	}
+
+	os.Setenv("TEST_INVALID_INT", "not_an_int")
+	defer os.Unsetenv("TEST_INVALID_INT")
+
+	cfg := badConfig{}
+	err := envzilla.Parse(&cfg)
+	if err == nil {
+		t.Errorf("expected error due to invalid int conversion, got nil")
+	}
 }
 
 func ParseAndCompare(t *testing.T, input []byte, inputKey string, expected string, description string) {
