@@ -152,6 +152,17 @@ func processStruct(structVal reflect.Value) error {
 		field := structVal.Field(i)
 		fieldType := structType.Field(i)
 
+		if field.Kind() == reflect.Struct && fieldType.Type.Kind() == reflect.Struct {
+			if err := processStruct(field); err != nil {
+				return err
+			}
+			continue
+		}
+
+		if !field.CanSet() {
+			continue
+		}
+
 		envKey, hasKey := fieldType.Tag.Lookup(envTag)
 		defVal, hasDefault := fieldType.Tag.Lookup(defaultTag)
 
@@ -164,7 +175,7 @@ func processStruct(structVal reflect.Value) error {
 			}
 			valueToSet = envVal
 		} else {
-			return fmt.Errorf("%w for field %s", ErrMissingEnvTag, fieldType.Name)
+			continue
 		}
 
 		if hasDefault && defVal != "" && valueToSet == "" {
