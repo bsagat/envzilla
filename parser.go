@@ -159,7 +159,7 @@ func processStruct(structVal reflect.Value) error {
 
 		if hasKey && envKey != "" {
 			envVal := os.Getenv(envKey)
-			if len(envVal) == 0 {
+			if len(envVal) == 0 && !hasDefault {
 				return fmt.Errorf("%s field tag provided, but not found", envKey)
 			}
 			valueToSet = envVal
