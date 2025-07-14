@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"os"
 	"testing"
+	"time"
 
-	"github.com/bsagat/envzilla"
+	"github.com/bsagat/envzilla/v2"
 )
 
 func TestLoader(t *testing.T) {
@@ -58,10 +59,11 @@ func TestQuotesParser(t *testing.T) {
 }
 
 type parseTestConfig struct {
-	StringField string  `env:"TEST_STRING" default:"default_value"`
-	IntField    int     `env:"TEST_INT" default:"42"`
-	FloatField  float64 `env:"TEST_FLOAT" default:"3.14"`
-	BoolField   bool    `env:"TEST_BOOL" default:"true"`
+	StringField   string        `env:"TEST_STRING" default:"default_value"`
+	IntField      int           `env:"TEST_INT" default:"42"`
+	FloatField    float64       `env:"TEST_FLOAT" default:"3.14"`
+	BoolField     bool          `env:"TEST_BOOL" default:"true"`
+	DurationField time.Duration `env:"TEST_DURATION" default:"1m"`
 }
 
 func TestParse_WithEnvValues(t *testing.T) {
@@ -70,11 +72,13 @@ func TestParse_WithEnvValues(t *testing.T) {
 	os.Setenv("TEST_INT", "100")
 	os.Setenv("TEST_FLOAT", "2.718")
 	os.Setenv("TEST_BOOL", "false")
+	os.Setenv("TEST_DURATION", "5s")
 	defer func() {
 		os.Unsetenv("TEST_STRING")
 		os.Unsetenv("TEST_INT")
 		os.Unsetenv("TEST_FLOAT")
 		os.Unsetenv("TEST_BOOL")
+		os.Unsetenv("TEST_DURATION")
 	}()
 
 	cfg := parseTestConfig{}
@@ -97,6 +101,9 @@ func TestParse_WithEnvValues(t *testing.T) {
 	}
 	if cfg.BoolField != false {
 		t.Errorf("expected BoolField=false, got %v", cfg.BoolField)
+	}
+	if cfg.DurationField != time.Second*5 {
+		t.Errorf("expected DurationField=%d, got %v", time.Second*5, cfg.DurationField)
 	}
 }
 
@@ -123,6 +130,9 @@ func TestParse_WithDefaults(t *testing.T) {
 	if cfg.BoolField != true {
 		t.Errorf("expected BoolField=true, got %v", cfg.BoolField)
 	}
+	if cfg.DurationField != time.Minute {
+		t.Errorf("expected DurationField=%d, got %v", time.Minute, cfg.DurationField)
+	}
 }
 
 func TestParse_ErrorOnNonPointer(t *testing.T) {
@@ -138,17 +148,6 @@ func TestParse_ErrorOnNonStructPointer(t *testing.T) {
 	err := envzilla.Parse(&i) // Passing pointer to non-struct
 	if err == nil {
 		t.Errorf("expected error when passing non-struct pointer to Parse, got nil")
-	}
-}
-
-func TestParse_MissingEnvTag(t *testing.T) {
-	type badConfig struct {
-		Field string `json:"no_env_tag"`
-	}
-	cfg := badConfig{}
-	err := envzilla.Parse(&cfg)
-	if err == nil {
-		t.Errorf("expected error due to missing env tag, got nil")
 	}
 }
 

@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 var (
@@ -66,7 +67,7 @@ func BytesParser(raw []byte) map[string]string {
 	var isKeyAdded, isCommented bool
 
 	env := make(map[string]string, 5)
-	for i := 0; i < len(raw); i++ {
+	for i := range raw {
 		switch raw[i] {
 		case CRLF:
 		case newLine:
@@ -190,10 +191,19 @@ func processStruct(structVal reflect.Value) error {
 	return nil
 }
 
-// Supports fields of type string, int, float, and bool.
+// Supports fields of type string, int, float, bool and time.Duration.
 func setField(field reflect.Value, value string) error {
 	if !field.CanSet() {
 		return errors.New("field cannot be set")
+	}
+
+	if field.Type() == reflect.TypeOf(time.Duration(0)) {
+		dur, err := time.ParseDuration(value)
+		if err != nil {
+			return fmt.Errorf("cannot convert %s to duration: %w", value, err)
+		}
+		field.Set(reflect.ValueOf(dur))
+		return nil
 	}
 
 	switch field.Kind() {
