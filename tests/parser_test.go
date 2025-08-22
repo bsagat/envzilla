@@ -66,6 +66,63 @@ type parseTestConfig struct {
 	DurationField time.Duration `env:"TEST_DURATION" default:"1m"`
 }
 
+type loadYamlTestConfig struct {
+	Config struct {
+		Port   int    `env:"CONFIG_PORT"`
+		Host   string `env:"CONFIG_HOST"`
+		Nested struct {
+			Enabled bool   `env:"CONFIG_NESTED_ENABLED"`
+			Retries int    `env:"CONFIG_NESTED_RETRIES"`
+			Timeout string `env:"CONFIG_NESTED_TIMEOUT"`
+		}
+	}
+}
+
+func TestLoadYaml(t *testing.T) {
+	tmpFile := "mocks/test_config.yaml"
+	var cfg loadYamlTestConfig
+
+	// YAML load
+	err := envzilla.LoadAndParse(&cfg, tmpFile)
+	if err != nil {
+		t.Fatalf("failed to load and parse file: %v", err)
+	}
+
+	// Environment check
+	if got := os.Getenv("CONFIG_PORT"); got != "8080" {
+		t.Errorf("CONFIG_PORT = %s, want %s", got, "8080")
+	}
+	if got := os.Getenv("CONFIG_HOST"); got != "localhost" {
+		t.Errorf("CONFIG_HOST = %s, want %s", got, "localhost")
+	}
+	if got := os.Getenv("CONFIG_NESTED_ENABLED"); got != "true" {
+		t.Errorf("CONFIG_NESTED_ENABLED = %s, want %s", got, "true")
+	}
+	if got := os.Getenv("CONFIG_NESTED_RETRIES"); got != "3" {
+		t.Errorf("CONFIG_NESTED_RETRIES = %s, want %s", got, "3")
+	}
+	if got := os.Getenv("CONFIG_NESTED_TIMEOUT"); got != "5s" {
+		t.Errorf("CONFIG_NESTED_TIMEOUT = %s, want %s", got, "5s")
+	}
+
+	// Struct values check
+	if cfg.Config.Port != 8080 {
+		t.Errorf("Config.Port = %d, want %d", cfg.Config.Port, 8080)
+	}
+	if cfg.Config.Host != "localhost" {
+		t.Errorf("Config.Host = %s, want %s", cfg.Config.Host, "localhost")
+	}
+	if !cfg.Config.Nested.Enabled {
+		t.Errorf("Config.Nested.Enabled = false, want true")
+	}
+	if cfg.Config.Nested.Retries != 3 {
+		t.Errorf("Config.Nested.Retries = %d, want %d", cfg.Config.Nested.Retries, 3)
+	}
+	if cfg.Config.Nested.Timeout != "5s" {
+		t.Errorf("Config.Nested.Timeout = %s, want %s", cfg.Config.Nested.Timeout, "5s")
+	}
+}
+
 func TestParse_WithEnvValues(t *testing.T) {
 	// Arrange
 	os.Setenv("TEST_STRING", "from_env")

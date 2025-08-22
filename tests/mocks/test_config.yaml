@@ -1,0 +1,7 @@
+config:
+  port: 8080
+  host: localhost
+  nested:
+    enabled: true
+    retries: 3
+    timeout: 5s
