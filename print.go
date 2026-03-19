@@ -1,5 +1,12 @@
 package envzilla
 
+import (
+	"fmt"
+	"reflect"
+	"strings"
+	"time"
+)
+
 // PrintConfig prints structure with field names and values in a clean format
 // Any sensitive data (such as passwords,
 // secrets, or keys) is automatically masked for security.
